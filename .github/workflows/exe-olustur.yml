@@ -1,0 +1,60 @@
+name: EXE Olustur
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Paketleri kur
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Testleri calistir (gercek arayuz testi dahil)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest -v
+
+      - name: EXE olustur
+        run: >
+          python -m PyInstaller --noconfirm --clean --windowed --onefile
+          --name KOTicaretTakip --icon assets\icon.ico --add-data "assets;assets" main.py
+
+      - name: EXE'yi calistirma kontrolu
+        shell: pwsh
+        run: |
+          $env:KO_TICARET_DATA_DIR = "$env:RUNNER_TEMP\ko_test"
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $p = Start-Process -FilePath "dist\KOTicaretTakip.exe" -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "EXE acildiktan hemen sonra kapandi (cikis kodu $($p.ExitCode))" }
+          Stop-Process -Id $p.Id -Force
+          if (-not (Test-Path "$env:KO_TICARET_DATA_DIR\ticaret.db")) { throw "Veritabani olusturulmadi" }
+          Write-Host "EXE sorunsuz acildi ve veritabanini olusturdu."
+
+      - name: Indirilebilir dosya olarak yukle
+        uses: actions/upload-artifact@v4
+        with:
+          name: KOTicaretTakip
+          path: dist/KOTicaretTakip.exe
+
+      - name: Releases sayfasinda yayinla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "v1.0.${{ github.run_number }}"
+          gh release create $tag "dist\KOTicaretTakip.exe" --title "KO Ticaret Takip $tag" --notes "Windows icin hazir EXE. Indirip cift tiklayin; kurulum gerekmez. Verileriniz %LOCALAPPDATA%\KOTicaretTakip klasorunde saklanir."

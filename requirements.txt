@@ -1,0 +1,2 @@
+# Programin calismasi icin gerekenler
+PySide6-Essentials>=6.6,<7

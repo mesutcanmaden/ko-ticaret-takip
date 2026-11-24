@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 
 from ..core.errors import UserError
 from ..core.money import fmt_gb
-from ..core.paths import APP_NAME, APP_VERSION
+from ..core.paths import APP_NAME, APP_PUBLISHER, APP_VERSION
 from ..core.service import fmt_date
 from . import theme
 from .dialogs import CashDialog, DetailDialog, EditPurchaseDialog, EditSaleDialog, EditTradeDialog
@@ -59,7 +59,7 @@ class MainWindow(QMainWindow):
         nl.setSpacing(0)
         brand = QLabel("KO Ticaret Takip")
         brand.setObjectName("Brand")
-        sub = QLabel("Item alış-satış defteri")
+        sub = QLabel(f"Item alış-satış defteri\n{APP_PUBLISHER}")
         sub.setObjectName("BrandSub")
         nl.addWidget(brand)
         nl.addWidget(sub)

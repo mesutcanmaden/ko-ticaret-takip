@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from ...core import backup
 from ...core.errors import UserError
 from ...core.money import fmt_rate, parse_tax_rate
-from ...core.paths import APP_VERSION, data_dir, default_backup_dir
+from ...core.paths import APP_PUBLISHER, APP_VERSION, data_dir, default_backup_dir
 from ..widgets import Cell, MoneyInput, Table, confirm, info, muted, page_title, warn
 from .base import Page
 
@@ -100,7 +100,7 @@ class SettingsPage(Page):
         df = QFormLayout(dbb)
         self.db = {}
         for k, t in (("path", "Veritabanı dosyası"), ("size", "Boyut"), ("counts", "Kayıtlar"),
-                     ("version", "Program sürümü")):
+                     ("version", "Program sürümü"), ("maker", "Yapımcı")):
             self.db[k] = QLabel("—")
             self.db[k].setWordWrap(True)
             df.addRow(t, self.db[k])
@@ -145,6 +145,7 @@ class SettingsPage(Page):
         self.db["counts"].setText(f"{i['transactions']} işlem · {i['lots']} alış partisi · "
                                   f"{i['item_names']} item adı · {i['products']} ürün (item + upgrade)")
         self.db["version"].setText(APP_VERSION)
+        self.db["maker"].setText(APP_PUBLISHER)
 
     def save(self) -> None:
         try:

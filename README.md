@@ -7,27 +7,21 @@ Program oyuna bağlanmaz, oyun dosyalarına dokunmaz ve kendiliğinden hiçbir o
 
 ## Kurulum (adım adım)
 
-### 1. Python'u kurun (yalnızca bir kez)
-1. https://www.python.org/downloads/ adresine gidin ve **Python 3.12** sürümünü indirin.
-2. Kurulumun ilk ekranında alttaki **"Add python.exe to PATH"** kutusunu işaretleyin.
-3. **Install Now**'a tıklayın ve kurulum bitene kadar bekleyin.
+1. GitHub deposunun **Releases** sayfasından en yeni **`KOTicaretTakip_Kurulum.exe`** dosyasını indirin.
+2. Dosyaya çift tıklayın. Windows mavi "Bilgisayarınız korundu" uyarısı gösterirse **Ek bilgi → Yine de çalıştır**'a tıklayın
+   (imzasız kişisel programlarda normaldir; yalnızca kurulumda bir kez çıkar).
+3. Kurulum sihirbazında **İleri → Kur → Son**. Yönetici izni gerekmez.
+4. Program Başlat menüsünde ve (seçtiyseniz) masaüstünde **KO Ticaret Takip** adıyla bulunur.
 
-### 2. Program klasörünü açın
-İndirdiğiniz `KOTicaretTakip.zip` dosyasına sağ tıklayın, **Tümünü ayıkla**'yı seçin. Örneğin `Belgeler\KOTicaretTakip` gibi bir klasöre çıkartın.
+**Güncelleme:** Yeni kurulum dosyasını aynı şekilde çalıştırın; eski sürümün üzerine kurulur, kayıtlarınız korunur.
+**Kaldırma:** Ayarlar → Uygulamalar → KO Ticaret Takip → Kaldır. Kayıtlarınız silinmez.
 
-### 3. Kurulumu yapın (yalnızca bir kez)
-Klasördeki **`1_kurulum.bat`** dosyasına çift tıklayın. Gerekli paketler internetten indirilir; bu birkaç dakika sürebilir.
-"Kurulum tamamlandı" yazısını görünce pencereyi kapatabilirsiniz.
+Kurulum dosyası, depoya her değişiklik gönderildiğinde GitHub'ın Windows sunucusunda otomatik oluşturulur:
+önce bütün testler çalışır, sonra kurulum yapılır, program açılır ve kaldırma denenir.
 
-> Windows "Bilgisayarınız korundu" uyarısı verirse **Ek bilgi → Yine de çalıştır**'a tıklayın.
-
-### 4a. Programı çalıştırın
-**`2_calistir.bat`** dosyasına çift tıklayın.
-
-### 4b. EXE dosyası oluşturun (önerilir)
-**`3_exe_olustur.bat`** dosyasına çift tıklayın. Önce otomatik testler çalışır, ardından EXE oluşturulur.
-Bittiğinde `dist` klasörü açılır. İçindeki **`KOTicaretTakip.exe`** dosyası tek başına çalışır:
-masaüstünüze kopyalayabilir, Python kurulu olmayan başka bir bilgisayarda da açabilirsiniz.
+### Kaynaktan çalıştırma (geliştiriciler için)
+Python 3.12 kurun ("Add python.exe to PATH" işaretli), sonra `1_kurulum.bat` → `2_calistir.bat`.
+`3_exe_olustur.bat` programı `dist\KOTicaretTakip\` klasörüne paketler.
 
 ---
 
@@ -139,7 +133,5 @@ dilimleme ile dağıtılır: bir parti tamamen tükendiğinde dağıtılan maliy
 **Testleri çalıştırma:** `testleri_calistir.bat` (veya `.venv\Scripts\python -m pytest -v`).
 `tests/test_ui_smoke.py`, gerçek PySide6 ile pencereyi ekransız açıp alış, satış, takas, geri alma ve yedekleme yapar.
 
-**Elle EXE oluşturma:**
-```
-.venv\Scripts\python -m PyInstaller --noconfirm --clean --windowed --onefile --name KOTicaretTakip --icon assets\icon.ico --add-data "assets;assets" main.py
-```
+**Paketleme:** `.github/workflows/exe-olustur.yml` — PyInstaller klasör paketi (`--onedir`, sürüm bilgisi
+`packaging/make_version_file.py`), ardından Inno Setup ile `packaging/installer.iss` → `KOTicaretTakip_Kurulum.exe`.

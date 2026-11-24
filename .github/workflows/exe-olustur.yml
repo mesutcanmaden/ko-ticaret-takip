@@ -1,4 +1,4 @@
-name: EXE Olustur
+name: Kurulum Dosyasi Olustur
 
 on:
   push:
@@ -28,33 +28,70 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: python -m pytest -v
 
-      - name: EXE olustur
-        run: >
-          python -m PyInstaller --noconfirm --clean --windowed --onefile
-          --name KOTicaretTakip --icon assets\icon.ico --add-data "assets;assets" main.py
-
-      - name: EXE'yi calistirma kontrolu
+      - name: Surum bilgisi
+        id: ver
         shell: pwsh
         run: |
+          $v = python packaging\make_version_file.py
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Surum: $v"
+
+      - name: Programi klasor olarak paketle
+        run: >
+          python -m PyInstaller --noconfirm --clean --windowed --onedir
+          --name KOTicaretTakip --icon assets\icon.ico --add-data "assets;assets"
+          --version-file packaging\version_info.txt main.py
+
+      - name: Inno Setup hazirla
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup kurulamadi" }
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+
+      - name: Kurulum dosyasini olustur
+        shell: pwsh
+        run: '& $env:ISCC "/DAppVersion=${{ steps.ver.outputs.version }}" packaging\installer.iss'
+
+      - name: Kur - ac - kaldir testi
+        shell: pwsh
+        run: |
+          $setup = "dist\KOTicaretTakip_Kurulum.exe"
+          $p = Start-Process $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/TASKS=desktopicon" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Kurulum basarisiz (kod $($p.ExitCode))" }
+          $dir = "$env:LOCALAPPDATA\Programs\KO Ticaret Takip"
+          $exe = "$dir\KOTicaretTakip.exe"
+          if (-not (Test-Path $exe)) { Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Depth 1 | Out-String | Write-Host; throw "Program kurulmadi" }
+          if (-not (Test-Path "$env:USERPROFILE\Desktop\KO Ticaret Takip.lnk")) { Write-Host "Uyari: masaustu kisayolu bulunamadi" }
+          Write-Host "Kuruldu: $exe"
+
           $env:KO_TICARET_DATA_DIR = "$env:RUNNER_TEMP\ko_test"
           $env:QT_QPA_PLATFORM = "offscreen"
-          $p = Start-Process -FilePath "dist\KOTicaretTakip.exe" -PassThru
+          $app = Start-Process $exe -PassThru
           Start-Sleep -Seconds 15
-          if ($p.HasExited) { throw "EXE acildiktan hemen sonra kapandi (cikis kodu $($p.ExitCode))" }
-          Stop-Process -Id $p.Id -Force
+          if ($app.HasExited) { throw "Program acildiktan hemen sonra kapandi (kod $($app.ExitCode))" }
+          Stop-Process -Id $app.Id -Force
+          Start-Sleep -Seconds 2
           if (-not (Test-Path "$env:KO_TICARET_DATA_DIR\ticaret.db")) { throw "Veritabani olusturulmadi" }
-          Write-Host "EXE sorunsuz acildi ve veritabanini olusturdu."
+          Write-Host "Program sorunsuz acildi."
+
+          $u = Start-Process "$dir\unins000.exe" -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait -PassThru
+          Start-Sleep -Seconds 10
+          if (Test-Path $exe) { throw "Kaldirma basarisiz" }
+          if (-not (Test-Path "$env:KO_TICARET_DATA_DIR\ticaret.db")) { throw "Kaldirma kullanici verilerini silmemeliydi" }
+          Write-Host "Kaldirma sorunsuz; kullanici verileri korundu."
 
       - name: Indirilebilir dosya olarak yukle
         uses: actions/upload-artifact@v4
         with:
-          name: KOTicaretTakip
-          path: dist/KOTicaretTakip.exe
+          name: KOTicaretTakip_Kurulum
+          path: dist/KOTicaretTakip_Kurulum.exe
 
       - name: Releases sayfasinda yayinla
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $tag = "v1.0.${{ github.run_number }}"
-          gh release create $tag "dist\KOTicaretTakip.exe" --title "KO Ticaret Takip $tag" --notes "Windows icin hazir EXE. Indirip cift tiklayin; kurulum gerekmez. Verileriniz %LOCALAPPDATA%\KOTicaretTakip klasorunde saklanir."
+          $tag = "v${{ steps.ver.outputs.version }}-${{ github.run_number }}"
+          gh release create $tag "dist\KOTicaretTakip_Kurulum.exe" --title "KO Ticaret Takip ${{ steps.ver.outputs.version }} (kurulum)" --notes "KOTicaretTakip_Kurulum.exe dosyasini indirip calistirin. Yonetici izni gerekmez. Kayitlariniz AppData\Local\KOTicaretTakip klasorunde saklanir; guncelleme veya kaldirma sirasinda silinmez."
